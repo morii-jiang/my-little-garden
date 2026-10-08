@@ -9,7 +9,6 @@ void game()
 
 
 	putmine(mine);
-	display(mine);
 	int flag = 1;
 	int blank = 71;
 	int x, y;
@@ -24,11 +23,9 @@ void game()
 		}
 		else if (mine[x][y] - '0' == 0)
 		{
-			blank--;
-			show[x][y] = count(mine,x,y);
-			blank-=open(mine, show, x, y);
-
-
+			show[x][y] = count(mine, x, y);		/* 先翻开自己 */
+			blank--;							/* 自己算一格 */
+			blank -= open(mine, show, x, y);	/* 再扣掉额外翻开的格数 */
 		}
 	} while (flag&&blank);
 	if (flag == 0)
@@ -112,132 +109,50 @@ char count(char arr[11][11],int x,int y)
 	return n;
 }
 
-int open(char arr1[11][11],char arr2[11][11],int x,int y)
+int open(char arr1[11][11], char arr2[11][11], int x, int y)
 {
-	int num = rand() % 6;
-	int h, s;
-	int p = 0;
-	p = num;
-	switch (num)
+	/* 一次性多翻开几格：沿用"随机捎带 n 个空格"的玩法，
+	   但先把真正可翻的邻居收集起来，只在其中随机取，绝不空转。
+	   可翻 = 在 1~9 内、不是雷、还没翻开。 */
+	int cand[8][2];
+	int n = 0;
+	for (int i = -1; i <= 1; i++)
 	{
-	case 0:
-		break;
-	case 1:
-		do {
-			s = rand() % 3;
-			if (s == 0 || s == 2)
-			{
-				h = 1;
-			}
-			else
-			{
-				h = rand() % 2;
-				if (h == 1)
-				{
-					h = 2;
-				}
-			}
-			if (arr1[x - 1 + h][y - 1 + s] == '0')
-			{
-				arr2[x - 1 + h][y - 1 + s] = count(arr1,x-1+h,y-1+s);
-				num--;
-			}
-		} while (num);
-		break;
-	case 2:
-		do 
+		for (int j = -1; j <= 1; j++)
 		{
-			s = rand() % 3;
-			if (s == 0 || s == 2)
-			{
-				h = 1;
-			}
-			else
-			{
-				h = rand() % 2;
-				if (h == 1)
-				{
-					h = 2;
-				}
-			}
-			if (arr1[x - 1 + h][y - 1 + s] == '0')
-			{
-				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
-				num--;
-			}
-		} while(num);
-		break;
-
-	case 3:
-		do
-		{
-			s = rand() % 3;
-			if (s == 0 || s == 2)
-			{
-				h = 1;
-			}
-			else
-			{
-				h = rand() % 2;
-				if (h == 1)
-				{
-					h = 2;
-				}
-			}
-			if (arr1[x - 1 + h][y - 1 + s] == '0')
-			{
-				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
-				num--;
-			}
-		} while (num);
-		break;
-	case 4:
-		do
-		{
-			s = rand() % 3;
-			if (s == 0 || s == 2)
-			{
-				h = 1;
-			}
-			else
-			{
-				h = rand() % 2;
-				if (h == 1)
-				{
-					h = 2;
-				}
-			}
-			if (arr1[x - 1 + h][y - 1 + s] == '0')
-			{
-				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
-				num--;
-			}
-		} while (num);
-		break;
-
-	case 5:
-		do
-		{
-			s = rand() % 3;
-			if (s == 0 || s == 2)
-			{
-				h = 1;
-			}
-			else
-			{
-				h = rand() % 2;
-				if (h == 1)
-				{
-					h = 2;
-				}
-			}
-			if (arr1[x - 1 + h][y - 1 + s] == '0')
-			{
-				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
-				num--;
-			}
-		} while (num);
-		break;
+			if (i == 0 && j == 0) continue;			/* 自己跳过 */
+			int nx = x + i;
+			int ny = y + j;
+			if (nx < 1 || nx > 9 || ny < 1 || ny > 9) continue;	/* 边界 */
+			if (arr1[nx][ny] != '0') continue;					/* 是雷 */
+			if (arr2[nx][ny] != '*') continue;					/* 已经翻开过 */
+			cand[n][0] = nx;
+			cand[n][1] = ny;
+			n++;
+		}
 	}
-	return p;
+
+	if (n == 0)							/* 周围没得翻：直接收工，不会卡住 */
+	{
+		return 0;
+	}
+
+	int want = rand() % 6;				/* 这次想捎带 0~5 格 */
+	if (want > n)						/* 凑不够就按实际有的来 */
+	{
+		want = n;
+	}
+
+	int p = 0;
+	while (p < want && n > 0)
+	{
+		int k = rand() % n;				/* 从候选里抽，抽不重 */
+		arr2[cand[k][0]][cand[k][1]] = count(arr1, cand[k][0], cand[k][1]);
+		p++;
+		cand[k][0] = cand[n - 1][0];		/* 选中的用最后一个补位 */
+		cand[k][1] = cand[n - 1][1];
+		n--;
+	}
+
+	return p;							/* 返回真正翻开的格数，交给 game() 扣 blank */
 }
