@@ -9,7 +9,7 @@ void game()
 
 
 	putmine(mine);
-	//display(mine);
+	display(mine);
 	int flag = 1;
 	int blank = 71;
 	int x, y;
@@ -26,7 +26,9 @@ void game()
 		{
 			blank--;
 			show[x][y] = count(mine,x,y);
-			//open(mine, show, x, y);
+			blank-=open(mine, show, x, y);
+
+
 		}
 	} while (flag&&blank);
 	if (flag == 0)
@@ -110,21 +112,132 @@ char count(char arr[11][11],int x,int y)
 	return n;
 }
 
-//void open(char arr1[11][11],char arr2[11][11],int x,int y)
-//{
-//	int num = rand() % 3;
-//	int p = 0;
-//	switch (num)
-//	{
-//	case 0:
-//		break;
-//	case 1:
-//		break;
-//	case 2:
-//		do 
-//		{
-//
-//		} while(num);
-//		break;
-//	}
-//}
+int open(char arr1[11][11],char arr2[11][11],int x,int y)
+{
+	int num = rand() % 6;
+	int h, s;
+	int p = 0;
+	p = num;
+	switch (num)
+	{
+	case 0:
+		break;
+	case 1:
+		do {
+			s = rand() % 3;
+			if (s == 0 || s == 2)
+			{
+				h = 1;
+			}
+			else
+			{
+				h = rand() % 2;
+				if (h == 1)
+				{
+					h = 2;
+				}
+			}
+			if (arr1[x - 1 + h][y - 1 + s] == '0')
+			{
+				arr2[x - 1 + h][y - 1 + s] = count(arr1,x-1+h,y-1+s);
+				num--;
+			}
+		} while (num);
+		break;
+	case 2:
+		do 
+		{
+			s = rand() % 3;
+			if (s == 0 || s == 2)
+			{
+				h = 1;
+			}
+			else
+			{
+				h = rand() % 2;
+				if (h == 1)
+				{
+					h = 2;
+				}
+			}
+			if (arr1[x - 1 + h][y - 1 + s] == '0')
+			{
+				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
+				num--;
+			}
+		} while(num);
+		break;
+
+	case 3:
+		do
+		{
+			s = rand() % 3;
+			if (s == 0 || s == 2)
+			{
+				h = 1;
+			}
+			else
+			{
+				h = rand() % 2;
+				if (h == 1)
+				{
+					h = 2;
+				}
+			}
+			if (arr1[x - 1 + h][y - 1 + s] == '0')
+			{
+				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
+				num--;
+			}
+		} while (num);
+		break;
+	case 4:
+		do
+		{
+			s = rand() % 3;
+			if (s == 0 || s == 2)
+			{
+				h = 1;
+			}
+			else
+			{
+				h = rand() % 2;
+				if (h == 1)
+				{
+					h = 2;
+				}
+			}
+			if (arr1[x - 1 + h][y - 1 + s] == '0')
+			{
+				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
+				num--;
+			}
+		} while (num);
+		break;
+
+	case 5:
+		do
+		{
+			s = rand() % 3;
+			if (s == 0 || s == 2)
+			{
+				h = 1;
+			}
+			else
+			{
+				h = rand() % 2;
+				if (h == 1)
+				{
+					h = 2;
+				}
+			}
+			if (arr1[x - 1 + h][y - 1 + s] == '0')
+			{
+				arr2[x - 1 + h][y - 1 + s] = count(arr1, x - 1 + h, y - 1 + s);
+				num--;
+			}
+		} while (num);
+		break;
+	}
+	return p;
+}

@@ -32,7 +32,7 @@ void game()
 			printf("范围是%d-%d\n",min,max);
 		}
 	} while (guess != real&&count<5);
-	if (count < 5)
+	if (count <= 5)
 	{
 		printf("猜测正确\n");
 		printf("一共猜测%d次\n", count);

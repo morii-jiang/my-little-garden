@@ -10,4 +10,4 @@ void start(char arr[11][11], char c);
 void display(char arr[11][11]);
 void putmine(char arr[11][11]);
 char count(char arr[11][11], int x, int y);
-void open(char arr1[11][11], char arr2[11][11], int x, int y);
+int open(char arr1[11][11], char arr2[11][11], int x, int y);
