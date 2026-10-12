@@ -5,9 +5,11 @@ int main()
 	int i = 0;
 	int j = 0;
 	int p = 0;
-	for (i = 1;i < 10;i++)
+	int n = 0;
+	scanf("%d", &n);
+	for (i = 1;i < n+1;i++)
 	{
-		for (j = 1;j < 10;j++)
+		for (j = 1;j < n+1;j++)
 		{
 			p = i * j;
 			printf("%d ", p);
