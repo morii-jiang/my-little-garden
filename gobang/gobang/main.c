@@ -20,7 +20,7 @@ int main()
 			int p = 0;
 
 			scanf("%d%d", &x, &y);
-			int step = 1;
+			int step = 0;
 			do {
 				
 				n = 2 - num;
