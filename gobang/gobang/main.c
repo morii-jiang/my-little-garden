@@ -11,7 +11,7 @@ int main()
 		scanf("%d", &flag);
 		if (flag == 1)
 		{
-			printf("\n¿ªÊ¼ÓÎÏ·\n");
+			printf("\nå¼€å§‹æ¸¸æˆ\n");
 			int broad[14][14];
 			chessbroad(broad);
 			int x, y;
@@ -34,20 +34,25 @@ int main()
 				step++;
 				if (winner)
 				{
-					printf("ÓÎÏ·½áÊø,%dºÅÍæ¼Ò»ñÊ¤\n",winner);
-					printf("¶şÈËÒ»¹²×ßÁË%d²½\n", step);
+					printf("æ¸¸æˆç»“æŸ,%då·ç©å®¶è·èƒœ\n",winner);
+					printf("äºŒäººä¸€å…±èµ°äº†%dæ­¥\n", step);
 					break;
 				}
+                if (step == 13 * 13)//æ£‹ç›˜å…¨ä¸‹å®Œäº†è¿˜æ²¡å†³å‡ºèƒœè´Ÿ
+                {
+				printf("æ¸¸æˆç»“æŸï¼Œå’Œæ£‹ï¼Œæ²¡æœ‰èµ¢å®¶\n");
+				break;
+                }
 			} while (scanf("%d%d", &x, &y) == 2);
 		}
 		else if (flag == 0)
 		{
-			printf("\nÍË³öÓÎÏ·\n");
+			printf("\né€€å‡ºæ¸¸æˆ\n");
 			//break;
 		}
 		else
 		{
-			printf("\nÇëÇó´íÎó\n");
+			printf("\nè¯·æ±‚é”™è¯¯\n");
 		}
 		if (flag && winner)
 		{
