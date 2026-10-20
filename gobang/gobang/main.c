@@ -20,7 +20,7 @@ int main()
 			int p = 0;
 
 			scanf("%d%d", &x, &y);
-			int step = 1;
+			int step = 0;
 			do {
 				
 				n = 2 - num;
@@ -28,14 +28,20 @@ int main()
 				if (p)
 				{
 					num = (num + 1) % 2;
+					step--;
 				}
-				winner=judge(broad, x, y, n,winner);
+				winner=judge(broad, x, y, n,winner);//判断5连
 				num = (num + 1) % 2;
 				step++;
 				if (winner)
 				{
 					printf("游戏结束,%d号玩家获胜\n",winner);
 					printf("二人一共走了%d步\n", step);
+					break;
+				}
+				if (step == 13 * 13)//棋盘全下完了还没决出胜负
+				{
+					printf("游戏结束，和棋，没有赢家\n");
 					break;
 				}
 			} while (scanf("%d%d", &x, &y) == 2);
