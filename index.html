@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>我的小花园 · my little garden</title>
+<meta name="description" content="一些自己写着玩的小项目。先来一盘 2048 吧。">
+<style>
+  :root{
+    --ink:#6b5142;
+    --ink-soft:#9a8070;
+    --ink-faint:#b7a08d;
+    --line:#efdcc8;
+    --ease:cubic-bezier(.22,1.2,.36,1);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    display:grid; place-items:center;
+    padding:28px 18px 48px;
+    font-family:"Nunito","Quicksand","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 620px at 50% -12%, #ffe9d1 0%, rgba(255,233,209,0) 62%),
+      radial-gradient(760px 520px at 8% 108%, #ffe3cf 0%, rgba(255,227,207,0) 60%),
+      radial-gradient(820px 560px at 96% 96%, #f7dcc4 0%, rgba(247,220,196,0) 62%),
+      linear-gradient(180deg,#fdf1e2 0%,#f6e3d0 52%,#f1d8c3 100%);
+    background-attachment:fixed;
+  }
+  .wrap{ width:min(560px,100%); text-align:center; }
+
+  .avatar{
+    width:92px; height:92px; border-radius:50%;
+    object-fit:cover;
+    border:3px solid #fff8ef;
+    box-shadow:0 10px 22px -14px rgba(150,102,62,.9), 0 0 0 1px var(--line);
+    background:#fdf3e6;
+  }
+
+  h1{
+    margin:16px 0 6px;
+    font-size:clamp(28px,6vw,38px); line-height:1.1; font-weight:800;
+    background:linear-gradient(160deg,#e8875f 0%,#c9603f 55%,#a44a34 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{ margin:0 0 26px; font-size:13.5px; letter-spacing:.08em; color:var(--ink-soft); }
+
+  .card{
+    display:block; text-decoration:none; color:inherit;
+    padding:22px 22px 20px;
+    border-radius:24px;
+    background:linear-gradient(180deg,#fffdf9,#fdf2e3);
+    border:1px solid var(--line);
+    box-shadow:0 22px 45px -26px rgba(150,102,62,.65), inset 0 1px 0 #fff;
+    transition:transform .18s var(--ease), box-shadow .18s ease;
+    text-align:left;
+  }
+  .card:hover{ transform:translateY(-3px); box-shadow:0 28px 52px -26px rgba(150,102,62,.75), inset 0 1px 0 #fff; }
+  .card:active{ transform:translateY(0); }
+
+  .card-top{ display:flex; align-items:center; gap:14px; }
+  .num{
+    flex:0 0 auto;
+    width:56px; height:56px; border-radius:16px;
+    display:grid; place-items:center;
+    font-size:15px; font-weight:800; color:#fff8ef; letter-spacing:.02em;
+    background:linear-gradient(180deg,#f5bc8a,#eda06b);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 14px -12px rgba(120,78,46,.9);
+  }
+  .card-title{ font-size:18px; font-weight:800; margin:0 0 3px; }
+  .card-desc{ margin:0; font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
+
+  .go{
+    display:inline-block; margin-top:16px;
+    font-size:13px; font-weight:800; color:#7a4a2f;
+    padding:9px 18px; border-radius:12px;
+    border:1px solid #eccfae;
+    background:linear-gradient(180deg,#ffeedb,#fcdcc0);
+    box-shadow:0 3px 0 #e9c4a3, inset 0 1px 0 #fff;
+  }
+
+  .tags{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:24px 0 0; padding:0; list-style:none; }
+  .tags li{
+    font-size:11.5px; color:var(--ink-soft);
+    padding:5px 11px; border-radius:999px;
+    background:rgba(255,250,243,.72);
+    border:1px dashed #e6cfb6;
+  }
+
+  footer{ margin-top:26px; font-size:11.5px; letter-spacing:.06em; color:var(--ink-faint); }
+  footer a{ color:var(--ink-soft); text-decoration:none; border-bottom:1px dashed #d9c3ac; }
+  footer a:hover{ color:var(--ink);  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img class="avatar" src="avatar.webp" alt="" onerror="this.style.display='none'">
+
+  <h1>我的小花园</h1>
+  <p class="sub">my little garden · 自己写着玩的一些小东西</p>
+
+  <a class="card" href="game2048/web/index.html">
+    <div class="card-top">
+      <div class="num">2048</div>
+      <div>
+        <p class="card-title">2048 · 暖暖小屋</p>
+        <p class="card-desc">温馨画风的数字合并小游戏。WASD 或方向键移动，手机上直接滑动。</p>
+      </div>
+    </div>
+    <span class="go">进去玩 →</span>
+  </a>
+
+  <ul class="tags">
+    <li>C 语言练习</li>
+    <li>控制台小游戏</li>
+    <li>顺手写的网页</li>
+  </ul>
+
+  <footer>
+    更多控制台项目在 <a href="https://gitee.com/morii_jiang/my-little-garden" target="_blank" rel="noopener">Gitee 仓库</a>
+  </footer>
+</main>
+</body>
+</html>
