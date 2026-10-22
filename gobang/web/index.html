@@ -164,6 +164,8 @@
   .coords b.r{ left:0; }
 
   .layer{ position:absolute; inset:0; }
+  .stones{ z-index:2; pointer-events:none; }
+  .spots{ z-index:1; }
 
   .spot{
     position:absolute;
@@ -172,6 +174,10 @@
     border-radius:50%;
     cursor:pointer;
     display:grid; place-items:center;
+    /* 清掉 button 的默认外观,否则每个点位都会变成一个灰底圆按钮挡住棋子 */
+    appearance:none; -webkit-appearance:none;
+    border:0; padding:0; margin:0; background:none;
+    font:inherit; color:inherit; box-shadow:none;
   }
   .spot::after{
     content:"";
@@ -301,8 +307,8 @@
     <div class="board turn-1" id="board">
       <svg class="grid" id="grid" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="coords" id="coords" aria-hidden="true"></div>
-      <div class="layer" id="stoneLayer"></div>
-      <div class="layer" id="spotLayer"></div>
+      <div class="layer stones" id="stoneLayer"></div>
+      <div class="layer spots" id="spotLayer"></div>
     </div>
     <div class="overlay" id="overlay" hidden>
       <div class="overlay-card">
