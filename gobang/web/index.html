@@ -130,6 +130,40 @@
     flex:1 1 auto; min-width:0;
   }
 
+  /* 模式切换 */
+  .modes{
+    display:flex; gap:5px; padding:4px;
+    background:rgba(255,250,243,.62);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:inset 0 1px 0 #fff;
+  }
+  .mode{
+    flex:1 1 0; min-width:0;
+    appearance:none; -webkit-appearance:none;
+    border:0; cursor:pointer; font-family:inherit;
+    font-size:12.5px; font-weight:700; color:var(--ink-faint);
+    padding:7px 6px; border-radius:10px; background:transparent;
+    transition:color .18s ease, background .18s ease, box-shadow .18s ease;
+    white-space:nowrap;
+  }
+  .mode.active{
+    color:#7a4a2f;
+    background:linear-gradient(180deg,#fff8ee,#fdeacd);
+    box-shadow:0 2px 6px -4px rgba(150,102,62,.9), inset 0 1px 0 #fff;
+  }
+
+  .status{
+    margin:-4px 0 0; min-height:16px;
+    text-align:center; font-size:12px; letter-spacing:.05em; color:var(--ink-soft);
+  }
+  .status.thinking::after{
+    content:""; display:inline-block; width:6px; height:6px; margin-left:6px;
+    border-radius:50%; background:#e2945f; vertical-align:middle;
+    animation:blink 1s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+
   /* ---------- 棋盘 ---------- */
   .board-wrap{ position:relative; }
 
@@ -293,6 +327,14 @@
     </div>
   </header>
 
+  <div class="modes" id="modes" role="group" aria-label="对战模式">
+    <button class="mode active" type="button" data-mode="pvp">双人对战</button>
+    <button class="mode" type="button" data-mode="pve-black">人机 · 我执黑</button>
+    <button class="mode" type="button" data-mode="pve-white">人机 · 我执白</button>
+  </div>
+
+  <p class="status" id="status">轮到黑棋</p>
+
   <div class="turnbar">
     <div class="chip black active" id="chip1"><span class="dot"></span>黑棋</div>
     <div class="chip white" id="chip2"><span class="dot"></span>白棋</div>
@@ -361,6 +403,9 @@
     winner: 0,
     winCells: [],
     muted: localStorage.getItem(MUTE_KEY) === '1',
+    mode: localStorage.getItem('cozyGobang.mode') || 'pvp',   // pvp | pve-black | pve-white
+    aiBusy: false,
+    aiGen: 0,
   };
 
   const stoneEls = [];   // [y][x] -> stone div 或 null
@@ -455,6 +500,121 @@
     return null;
   }
 
+  /* ---------------- 电脑(人机对战) ---------------- */
+
+  const isAIMode = () => state.mode !== 'pvp';
+  const humanColor = () => (state.mode === 'pve-white' ? 2 : 1);
+  const aiColor = () => (isAIMode() ? 3 - humanColor() : 0);
+  const isAITurn = () => isAIMode() && !state.over && state.turn === aiColor();
+
+  // 只在已有棋子周围 2 格内找点,避免开局乱下到天涯海角
+  function candidates() {
+    let hasStone = false;
+    for (let y = 0; y < N && !hasStone; y++) {
+      for (let x = 0; x < N; x++) if (state.board[y][x] !== 0) { hasStone = true; break; }
+    }
+    const mid = (N - 1) / 2;
+    if (!hasStone) return [[mid, mid]];
+
+    const list = [];
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (state.board[y][x] !== 0) continue;
+        let near = false;
+        for (let dy = -2; dy <= 2 && !near; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (inBoard(nx, ny) && state.board[ny][nx] !== 0) { near = true; break; }
+          }
+        }
+        if (near) list.push([x, y]);
+      }
+    }
+    return list;
+  }
+
+  function wouldWin(x, y, p) {
+    state.board[y][x] = p;
+    const line = findWin(x, y, p);
+    state.board[y][x] = 0;
+    return !!line;
+  }
+
+  // 连子数与两头空位的打分
+  function patternScore(count, open) {
+    if (count >= 5) return 10000000;         // 五连
+    if (count === 4) return open === 2 ? 1000000 : open === 1 ? 80000 : 0;
+    if (count === 3) return open === 2 ? 50000 : open === 1 ? 2200 : 0;
+    if (count === 2) return open === 2 ? 1600 : open === 1 ? 220 : 0;
+    return open === 2 ? 120 : open === 1 ? 18 : 0;
+  }
+
+  // 假如在 (x,y) 落 p 子,四个方向的整体价值
+  function pointScore(x, y, p) {
+    if (state.board[y][x] !== 0) return -1;
+    state.board[y][x] = p;
+    let total = 0;
+    for (const [dx, dy] of DIRS) {
+      let count = 1, open = 0;
+      for (const s of [1, -1]) {
+        let nx = x + dx * s, ny = y + dy * s;
+        while (inBoard(nx, ny) && state.board[ny][nx] === p) { count++; nx += dx * s; ny += dy * s; }
+        if (inBoard(nx, ny) && state.board[ny][nx] === 0) open++;
+      }
+      total += patternScore(count, open);
+    }
+    state.board[y][x] = 0;
+    return total;
+  }
+
+  function chooseMove(p) {
+    const opp = 3 - p;
+    const cands = candidates();
+    if (!cands.length) return null;
+
+    // 1. 能赢就赢
+    for (const [x, y] of cands) if (wouldWin(x, y, p)) return [x, y];
+    // 2. 对手要赢就先堵
+    for (const [x, y] of cands) if (wouldWin(x, y, opp)) return [x, y];
+
+    // 3. 攻守兼顾打分(自己进攻略优先),靠近中心加分
+    const mid = (N - 1) / 2;
+    const scored = cands.map(([x, y]) => {
+      const own = pointScore(x, y, p);
+      const def = pointScore(x, y, opp);
+      const center = (mid - Math.abs(x - mid)) + (mid - Math.abs(y - mid));
+      return { x, y, s: own * 1.08 + def + center * 1.5 };
+    }).sort((a, b) => b.s - a.s);
+
+    // 分数接近的几种走法随机挑,免得每局一模一样
+    const top = scored.filter((m) => m.s >= scored[0].s * 0.99);
+    const pick = top[(Math.random() * top.length) | 0];
+    return [pick.x, pick.y];
+  }
+
+  let aiTimer = null;
+  function scheduleAI() {
+    if (!isAITurn()) return;
+    state.aiBusy = true;
+    syncHud();
+    const gen = ++state.aiGen;
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(() => {
+      if (gen !== state.aiGen) return;          // 期间悔棋/重开过,作废
+      state.aiBusy = false;
+      if (!isAITurn()) { syncHud(); return; }
+      const mv = chooseMove(aiColor());
+      if (mv) place(mv[0], mv[1], true);
+      syncHud();
+    }, 280 + Math.random() * 220);
+  }
+
+  function cancelAI() {
+    state.aiGen++;
+    state.aiBusy = false;
+    clearTimeout(aiTimer);
+  }
+
   /* ---------------- 渲染 ---------------- */
 
   function paintStone(x, y, p, isLast, isWin) {
@@ -485,12 +645,35 @@
     boardEl.classList.toggle('turn-2', state.turn === 2 && !state.over);
     undoBtn.disabled = state.history.length === 0;
     ovUndo.disabled = state.history.length === 0;
+    syncStatus();
+  }
+
+  function syncStatus() {
+    const el = $('status');
+    if (!el) return;
+    el.classList.remove('thinking');
+    if (state.over) {
+      el.textContent = state.winner ? (state.winner === 1 ? '黑棋赢了' : '白棋赢了') : '和棋';
+      return;
+    }
+    if (isAIMode()) {
+      const you = humanColor() === 1 ? '黑' : '白';
+      if (state.aiBusy || isAITurn()) {
+        el.textContent = '电脑正在想…';
+        el.classList.add('thinking');
+      } else {
+        el.textContent = '轮到你了 · 你执' + you;
+      }
+    } else {
+      el.textContent = '轮到' + (state.turn === 1 ? '黑棋' : '白棋');
+    }
   }
 
   /* ---------------- 落子 / 悔棋 ---------------- */
 
-  function place(x, y) {
+  function place(x, y, byAI) {
     if (state.over) return;
+    if (!byAI && (state.aiBusy || isAITurn())) return;   // 电脑在思考时,别抢它的手
     if (state.board[y][x] !== 0) { blip(180, 0.08, 0.035, 'triangle'); return; }
 
     const p = state.turn;
@@ -531,30 +714,48 @@
 
     state.turn = 3 - state.turn;
     syncHud();
+    scheduleAI();
   }
 
   function undo() {
     if (!state.history.length) return;
-    const last = state.history.pop();
-    state.board[last.y][last.x] = 0;
-    paintStone(last.x, last.y, 0, false, false);
-    spotEls[last.y][last.x].classList.remove('taken');
-    state.moves--;
+    cancelAI();
+
+    const popOne = () => {
+      const m = state.history.pop();
+      state.board[m.y][m.x] = 0;
+      paintStone(m.x, m.y, 0, false, false);
+      spotEls[m.y][m.x].classList.remove('taken');
+      state.moves--;
+      return m;
+    };
+
+    if (isAIMode()) {
+      // 人机模式退到"又轮到你"为止:先退电脑那手,再退自己那手
+      if (state.history.length && state.history[state.history.length - 1].p === aiColor()) popOne();
+      if (state.history.length && state.history[state.history.length - 1].p === humanColor()) popOne();
+    } else {
+      popOne();
+    }
+
+    if (!state.history.length) { newGame(); return; }
+
     state.over = false;
     state.winner = 0;
     state.winCells = [];
-    state.turn = last.p;          // 悔掉的就是这手，还是他重下
     overlay.hidden = true;
 
-    // 重新标记新的最后一手
     const prev = state.history[state.history.length - 1];
-    if (prev) paintStone(prev.x, prev.y, prev.p, true, false);
+    state.turn = prev.p;                    // 悔掉的是谁的手,就还轮到谁
+    paintStone(prev.x, prev.y, prev.p, true, false);
 
     syncHud();
     blip(360, 0.1, 0.04, 'sine');
+    scheduleAI();
   }
 
   function newGame() {
+    cancelAI();
     state.board = Array.from({ length: N }, () => new Array(N).fill(0));
     state.turn = 1;
     state.moves = 0;
@@ -571,6 +772,7 @@
     }
     overlay.hidden = true;
     syncHud();
+    scheduleAI();       // 电脑执黑时它会先落子
   }
 
   function showOverlay(title, text) {
@@ -585,6 +787,24 @@
   $('ovRestart').addEventListener('click', newGame);
   undoBtn.addEventListener('click', undo);
   ovUndo.addEventListener('click', undo);
+
+  /* ---------------- 模式切换 ---------------- */
+
+  const modeBar = $('modes');
+  function syncModes() {
+    Array.prototype.forEach.call(modeBar.querySelectorAll('.mode'), (b) => {
+      b.classList.toggle('active', b.dataset.mode === state.mode);
+    });
+  }
+  modeBar.addEventListener('click', (e) => {
+    const btn = e.target.closest ? e.target.closest('.mode') : null;
+    if (!btn || btn.dataset.mode === state.mode) return;
+    state.mode = btn.dataset.mode;
+    try { localStorage.setItem('cozyGobang.mode', state.mode); } catch (_) {}
+    syncModes();
+    newGame();
+    blip(520, 0.1, 0.04, 'sine');
+  });
 
   const soundBtn = $('sound');
   function syncSoundBtn() {
@@ -601,6 +821,7 @@
   /* ---------------- 启动 ---------------- */
 
   buildBoard();
+  syncModes();
   syncSoundBtn();
   newGame();
 })();
