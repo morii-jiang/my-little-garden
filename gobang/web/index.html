@@ -153,6 +153,19 @@
     box-shadow:0 2px 6px -4px rgba(150,102,62,.9), inset 0 1px 0 #fff;
   }
 
+  .modes.sub{
+    background:rgba(255,250,243,.45);
+    box-shadow:none;
+    padding:3px;
+  }
+  .modes.sub .mode{ font-size:12px; padding:5px 4px; }
+  .modes-label{
+    flex:0 0 auto; align-self:center;
+    padding:0 8px 0 9px;
+    font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--ink-faint);
+  }
+  .modes.disabled{ opacity:.42; pointer-events:none; }
+
   .status{
     margin:-4px 0 0; min-height:16px;
     text-align:center; font-size:12px; letter-spacing:.05em; color:var(--ink-soft);
@@ -333,8 +346,14 @@
     <button class="mode" type="button" data-mode="pve-white">人机 · 我执白</button>
   </div>
 
-  <p class="status" id="status">轮到黑棋</p>
+  <div class="modes sub" id="diffs" role="group" aria-label="难度">
+    <span class="modes-label">难度</span>
+    <button class="mode" type="button" data-diff="easy">入门</button>
+    <button class="mode active" type="button" data-diff="normal">熟练</button>
+    <button class="mode" type="button" data-diff="master">大师</button>
+  </div>
 
+  <p class="status" id="status">轮到黑棋</p>
   <div class="turnbar">
     <div class="chip black active" id="chip1"><span class="dot"></span>黑棋</div>
     <div class="chip white" id="chip2"><span class="dot"></span>白棋</div>
@@ -404,6 +423,7 @@
     winCells: [],
     muted: localStorage.getItem(MUTE_KEY) === '1',
     mode: localStorage.getItem('cozyGobang.mode') || 'pvp',   // pvp | pve-black | pve-white
+    diff: localStorage.getItem('cozyGobang.diff') || 'normal', // easy | normal | master
     aiBusy: false,
     aiGen: 0,
   };
@@ -568,28 +588,89 @@
   }
 
   function chooseMove(p) {
+    if (state.diff === 'easy') return easyChoose(p);
+    if (state.diff === 'master') return masterChoose(p);
+    return normalChoose(p);
+  }
+
+  const pickRandom = (list) => list[(Math.random() * list.length) | 0];
+  const centerBonus = (x, y) => {
+    const mid = (N - 1) / 2;
+    return (mid - Math.abs(x - mid)) + (mid - Math.abs(y - mid));
+  };
+
+  // 入门:会走神——该抓的机会抓不住,该堵的也会漏
+  function easyChoose(p) {
     const opp = 3 - p;
     const cands = candidates();
     if (!cands.length) return null;
 
-    // 1. 能赢就赢
+    if (Math.random() < 0.8) {
+      for (const [x, y] of cands) if (wouldWin(x, y, p)) return [x, y];
+    }
+    if (Math.random() < 0.5) {
+      for (const [x, y] of cands) if (wouldWin(x, y, opp)) return [x, y];
+    }
+    if (Math.random() < 0.18) return pickRandom(cands);     // 偶尔纯粹凭感觉
+
+    const scored = cands.map(([x, y]) => {
+      const own = pointScore(x, y, p) * 0.55;
+      const def = pointScore(x, y, opp) * 0.45;
+      const noise = 1 + (Math.random() - 0.5) * 0.9;        // 加点手抖
+      return { x, y, s: (own + def + centerBonus(x, y) * 2) * noise };
+    }).sort((a, b) => b.s - a.s);
+
+    const pick = pickRandom(scored.slice(0, 6));
+    return [pick.x, pick.y];
+  }
+
+  // 熟练:攻守兼顾的即时评分
+  function normalChoose(p) {
+    const opp = 3 - p;
+    const cands = candidates();
+    if (!cands.length) return null;
+
     for (const [x, y] of cands) if (wouldWin(x, y, p)) return [x, y];
-    // 2. 对手要赢就先堵
     for (const [x, y] of cands) if (wouldWin(x, y, opp)) return [x, y];
 
-    // 3. 攻守兼顾打分(自己进攻略优先),靠近中心加分
-    const mid = (N - 1) / 2;
     const scored = cands.map(([x, y]) => {
       const own = pointScore(x, y, p);
       const def = pointScore(x, y, opp);
-      const center = (mid - Math.abs(x - mid)) + (mid - Math.abs(y - mid));
-      return { x, y, s: own * 1.08 + def + center * 1.5 };
+      return { x, y, s: own * 1.08 + def + centerBonus(x, y) * 1.5 };
     }).sort((a, b) => b.s - a.s);
 
-    // 分数接近的几种走法随机挑,免得每局一模一样
     const top = scored.filter((m) => m.s >= scored[0].s * 0.99);
     const pick = top[(Math.random() * top.length) | 0];
     return [pick.x, pick.y];
+  }
+
+  // 大师:多算一步,会估对手最强反击,偏爱双威胁
+  function masterChoose(p) {
+    const opp = 3 - p;
+    const cands = candidates();
+    if (!cands.length) return null;
+
+    for (const [x, y] of cands) if (wouldWin(x, y, p)) return [x, y];
+    for (const [x, y] of cands) if (wouldWin(x, y, opp)) return [x, y];
+
+    let best = null, bestVal = -Infinity;
+    for (const [x, y] of cands) {
+      const my = pointScore(x, y, p);
+      if (my >= 1000000) { best = [x, y]; break; }          // 能成活四就直接做
+
+      state.board[y][x] = p;
+      let oppBest = 0;
+      for (const [ox, oy] of candidates()) {
+        const s = pointScore(ox, oy, opp);
+        if (s > oppBest) oppBest = s;
+      }
+      state.board[y][x] = 0;
+
+      // 自己这一手值多少,减去对手接下来最强反击的威胁
+      const val = my + (my >= 50000 ? 300000 : 0) - oppBest * 0.92 + centerBonus(x, y) * 1.2;
+      if (val > bestVal) { bestVal = val; best = [x, y]; }
+    }
+    return best;
   }
 
   let aiTimer = null;
@@ -606,7 +687,7 @@
       const mv = chooseMove(aiColor());
       if (mv) place(mv[0], mv[1], true);
       syncHud();
-    }, 280 + Math.random() * 220);
+    }, (state.diff === 'master' ? 430 : state.diff === 'easy' ? 230 : 300) + Math.random() * 220);
   }
 
   function cancelAI() {
@@ -795,6 +876,7 @@
     Array.prototype.forEach.call(modeBar.querySelectorAll('.mode'), (b) => {
       b.classList.toggle('active', b.dataset.mode === state.mode);
     });
+    syncDiffs();
   }
   modeBar.addEventListener('click', (e) => {
     const btn = e.target.closest ? e.target.closest('.mode') : null;
@@ -804,6 +886,25 @@
     syncModes();
     newGame();
     blip(520, 0.1, 0.04, 'sine');
+  });
+
+  /* ---------------- 难度切换 ---------------- */
+
+  const diffBar = $('diffs');
+  function syncDiffs() {
+    Array.prototype.forEach.call(diffBar.querySelectorAll('.mode'), (b) => {
+      b.classList.toggle('active', b.dataset.diff === state.diff);
+    });
+    diffBar.classList.toggle('disabled', !isAIMode());   // 双人模式用不上难度
+  }
+  diffBar.addEventListener('click', (e) => {
+    const btn = e.target.closest ? e.target.closest('.mode') : null;
+    if (!btn || btn.dataset.diff === state.diff) return;
+    state.diff = btn.dataset.diff;
+    try { localStorage.setItem('cozyGobang.diff', state.diff); } catch (_) {}
+    syncDiffs();
+    newGame();
+    blip(560, 0.1, 0.04, 'sine');
   });
 
   const soundBtn = $('sound');
