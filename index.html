@@ -47,6 +47,8 @@
   }
   .sub{ margin:0 0 26px; font-size:13.5px; letter-spacing:.08em; color:var(--ink-soft); }
 
+  .cards{ display:flex; flex-direction:column; gap:14px; text-align:left; }
+
   .card{
     display:block; text-decoration:none; color:inherit;
     padding:22px 22px 20px;
@@ -69,8 +71,17 @@
     background:linear-gradient(180deg,#f5bc8a,#eda06b);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 14px -12px rgba(120,78,46,.9);
   }
-  .card-title{ font-size:18px; font-weight:800; margin:0 0 3px; }
-  .card-desc{ margin:0; font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
+  .num.gobang{
+    background:linear-gradient(160deg,#f3d8b3,#e0b78c);
+    color:#6b5142;
+  }
+  .num.gobang i{
+    display:block; width:26px; height:26px; border-radius:50%;
+    background:
+      radial-gradient(circle at 34% 30%, #7a5641, #3c2820 70%) no-repeat 0 0/13px 13px,
+      radial-gradient(circle at 34% 30%, #fffdf8, #e6d2b4 70%) no-repeat 13px 13px/13px 13px;
+  }
+  .card-title{ font-size:18px; font-weight:800; margin:0 0 3px; }  .card-desc{ margin:0; font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
 
   .go{
     display:inline-block; margin-top:16px;
@@ -101,16 +112,29 @@
   <h1>我的小花园</h1>
   <p class="sub">my little garden · 自己写着玩的一些小东西</p>
 
-  <a class="card" href="game2048/web/index.html">
-    <div class="card-top">
-      <div class="num">2048</div>
-      <div>
-        <p class="card-title">2048 · 暖暖小屋</p>
-        <p class="card-desc">温馨画风的数字合并小游戏。WASD 或方向键移动，手机上直接滑动。</p>
+  <div class="cards">
+    <a class="card" href="game2048/web/index.html">
+      <div class="card-top">
+        <div class="num">2048</div>
+        <div>
+          <p class="card-title">2048 · 暖暖小屋</p>
+          <p class="card-desc">温馨画风的数字合并小游戏。WASD 或方向键移动，手机上直接滑动。</p>
+        </div>
       </div>
-    </div>
-    <span class="go">进去玩 →</span>
-  </a>
+      <span class="go">进去玩 →</span>
+    </a>
+
+    <a class="card" href="gobang/web/index.html">
+      <div class="card-top">
+        <div class="num gobang"><i></i></div>
+        <div>
+          <p class="card-title">五子棋 · 落子无悔</p>
+          <p class="card-desc">13 × 13 木纹棋盘，黑白轮落下，横竖斜连成五子就赢。支持悔棋。</p>
+        </div>
+      </div>
+      <span class="go">进去玩 →</span>
+    </a>
+  </div>
 
   <ul class="tags">
     <li>C 语言练习</li>
